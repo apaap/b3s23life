@@ -1,12 +1,14 @@
-#C synthesise-constellation-v2.0.py
+#synthesise-constellation.py v2.0
 # by Goldtiger997, original version here
 #   http://www.conwaylife.com/forums/viewtopic.php?p=68370#p68370
-# v2.0 update by Arie Paap, changelog:
+# v2.0 update by Arie Paap, Oct 2019
+# Changelog:
 #   - Use sjk component format for glider collisions
-#   - Include a subset of 4G collisions
+#   - Extend 3G collisions and include a subset of 4G collisions
 
 import os
 import re
+import math
 import golly as g
 
 g.setrule("B3/S23")
@@ -20,7 +22,7 @@ def main():
     compFormat = re.compile('^([a-z0-9_]*)>([ 0-9\/-]+)>{}$'.format(apgcode))
     cols = []
     # 2G collisions
-    for line in twoGcols:
+    for line in twoGcols.splitlines():
         m = compFormat.search(line)
         if m: cols.append(m.groups())
     # 3G and 4G collisions
@@ -29,7 +31,7 @@ def main():
             for line in cF:
                 m = compFormat.search(line)
                 if m:
-                    mg = m.groups
+                    mg = m.groups()
                     if mg[0]:
                         g.warn('Non-empty starting target in glider collision - Not implemented')
                         continue
@@ -38,13 +40,17 @@ def main():
         # g.note(str(cols[:20]))
         cols = [reconstruct(col[1]) for col in cols]
         # g.note(str(cols[:20]))
+        Ncols = len(cols)
         g.new("solutions")
-        g.show("{} collisions found".format(len(cols)))
+        g.show("{} collisions found".format(Ncols))
         g.setname(apgcode)
-        offset = 0
-        for col in cols:
-            g.putcells(col, offset, 0)
-            offset += 50
+        if Ncols < 25:
+            N = 5
+        else:
+            N = math.ceil(math.sqrt(Ncols)) + 1
+        offset = 100
+        for i, col in enumerate(cols):
+            g.putcells(col, int((i % N) * offset), int((i // N) * offset))
         g.fit()
     else:
         g.note("No glider collisions found for that constellation. Better luck next time")
@@ -108,7 +114,6 @@ def reconstruct(gstr, stepback=2):
         for (time, lane) in zip(*[iter(field.split())] * 2):
             time, lane = - int(time) - t - 4, int(lane)
             dist, time = time // 4, time % 4
-            g.show('t {}, l {}, d {}'.format(time, lane, dist))
             salvo += g.evolve(g.transform(glider, dist, dist - lane), time)
         if   i == 1: salvo = g.transform(salvo, 0, 0, r270[0], r270[1], r270[2], r270[3]) # "rot270"
         elif i == 2: salvo = g.transform(salvo, 0, 0, r180[0], r180[1], r180[2], r180[3]) # "rot180"
