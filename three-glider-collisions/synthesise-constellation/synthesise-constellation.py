@@ -22,27 +22,36 @@ def main():
     if not apgcode:
         g.warn('Failed to detect periodic behavious after {} generations.'.format(MAXPERIOD))
     
-    compFormat = re.compile('^([a-z0-9_]*)>([ 0-9\/-]+)>{}$'.format(apgcode))
-    cols = []
     # 2G collisions
-    for line in twoGcols.splitlines():
-        m = compFormat.search(line)
-        if m: cols.append(m.groups())
+    if apgcode in twoGcols:
+        cols = twoGcols[apgcode]
+    else:
+        cols = []
     # 3G and 4G collisions
     for cFile in compFiles:
         with open(cFile) as cF:
-            for line in cF:
-                m = compFormat.search(line)
-                if m:
-                    mg = m.groups()
-                    if mg[0]:
+            found_code = False
+            for l in cF:
+                line = l.strip()
+                if not found_code:
+                    if line == apgcode:
+                        found_code = True
+                    continue
+                elif '>' in line:
+                    in_code, gstr, _ = line.split(">")
+                    if in_code:
                         g.warn('Non-empty starting target in glider collision - Not implemented')
-                        continue
-                    cols.append(mg)
+                    else:
+                        cols.append(gstr)
+                else:
+                    break
     
-    if cols:
-        cols = [reconstruct(col[1]) for col in cols]
-        Ncols = len(cols)
+    Ncols = len(cols)
+    if Ncols:
+        try:
+            cols = [reconstruct(col) for col in cols]
+        except Exception:
+            g.note(str(cols))
         g.new("solutions")
         g.show("{} collisions found".format(Ncols))
         g.setname(apgcode)
@@ -57,45 +66,28 @@ def main():
     else:
         g.note("No glider collisions found for constellation {}. Better luck next time".format(apgcode))
 
-twoGcols = """
->9 -1//7 -1/>xp2_7
->9 -1/1 2//>xp2_7
->8 0/-4 3//>xp2_7
->8 0///6 -2>xs6_696
->9 -2//6 -1/>xp2_s01110szw222
->9 -3/6 0//>xp2_s01110szw222
->6 0///4 -3>xp2_s01110szw222
->7 0//3 0/>xs4_33
->9 -2//6 -2/>xs4_33
->9 -3//6 -2/>xs4_33
->8 0/-6 3//>xs4_33
->8 -3/4 1//>xs4_33
->7 0///0 -2>xs4_33
->8 -1//6 0/>xs7_2596
->9 -1//6 -1/>xs5_253
->9 -1/-2 3//>xs24_y1696z2552wgw2552zy1343
->9 -2/1 2//>xs24_y1696z2552wgw2552zy1343
->9 -1/-3 3//>xs24_y1696z2552wgw2552zy1343
->9 0//4 0/>xs24_y1696z2552wgw2552zy1343
->9 -1//8 -1/>xs24_y1696z2552wgw2552zy1343
->8 0/-3 3//>xs16_0ggydgj3zop1yd11
->9 -2//8 -2/>xs8_6996
->9 -2/2 2//>xs8_6996
->6 -1/0 2//>xs8_rr
->8 0///4 -2>xs8_33w66
->9 -2/-1 2//>xp2_ggg07y270gggzy0ey2e
->8 -1///4 -3>xp2_7zw6952
->8 -1///0 -2>xp2_7zw6952
->9 -1/-4 3//>xs12_2552zy2696
->9 -1/-5 3//>xp2_xccy3252zgw8kicz3
->9 -3/4 1//>xs7_178c
->9 -3//5 -2/>xs16_ooy033zy1ooy033
->8 0//6 0/>xp2_yj2552z696ycezy0888y41110s0111zw70ggg07yh696zzybg8gzyb121
-"""
+twoGcols = {"xp2_7": ["9 -1//7 -1/", "9 -1/1 2//", "8 0/-4 3//"], \
+            "xs6_696": ["8 0///6 -2"], \
+            "xp2_s01110szw222": ["9 -2//6 -1/", "9 -3/6 0//", "6 0///4 -3"], \
+            "xs4_33": ["7 0//3 0/", "9 -2//6 -2/", "9 -3//6 -2/", "8 0/-6 3//", "8 -3/4 1//", "7 0///0 -2"], \
+            "xs7_2596": ["8 -1//6 0/"], \
+            "xs5_253": ["9 -1//6 -1/"], \
+            "xs24_y1696z2552wgw2552zy1343": ["9 -1/-2 3//", "9 -2/1 2//", "9 -1/-3 3//", "9 0//4 0/", "9 -1//8 -1/"], \
+            "xs16_0ggydgj3zop1yd11": ["8 0/-3 3//"], \
+            "xs8_6996": ["9 -2//8 -2/", "9 -2/2 2//"], \
+            "xs8_rr": ["6 -1/0 2//"], \
+            "xs8_33w66": ["8 0///4 -2"], \
+            "xp2_ggg07y270gggzy0ey2e": ["9 -2/-1 2//"], \
+            "xp2_7zw6952": ["8 -1///4 -3", "8 -1///0 -2"], \
+            "xs12_2552zy2696": ["9 -1/-4 3//"], \
+            "xp2_xccy3252zgw8kicz3": ["9 -1/-5 3//"], \
+            "xs7_178c": ["9 -3/4 1//"], \
+            "xs16_ooy033zy1ooy033": ["9 -3//5 -2/"], \
+            "xp2_yj2552z696ycezy0888y41110s0111zw70ggg07yh696zzybg8gzyb121": ["8 0//6 0/"]}
 
 r270 = ( 0, -1,  1,  0)
 r180 = (-1,  0,  0, -1)
-r090 = ( 0,  1, -1,  0)
+r90 = ( 0,  1, -1,  0)
 
 def reconstruct(gstr, stepback=2):
     """Reconstruct a pattern representing a glider set from its (canonical)
@@ -119,7 +111,7 @@ def reconstruct(gstr, stepback=2):
             salvo += g.evolve(g.transform(glider, dist, dist - lane), time)
         if   i == 1: salvo = g.transform(salvo, 0, 0, r270[0], r270[1], r270[2], r270[3]) # "rot270"
         elif i == 2: salvo = g.transform(salvo, 0, 0, r180[0], r180[1], r180[2], r180[3]) # "rot180"
-        elif i == 3: salvo = g.transform(salvo, 0, 0, r090[0], r090[1], r090[2], r090[3]) # "rot90"
+        elif i == 3: salvo = g.transform(salvo, 0, 0, r90[0], r90[1], r90[2], r90[3]) # "rot90"
         res += salvo
     return g.transform(res, shift_x, shift_y)
 
