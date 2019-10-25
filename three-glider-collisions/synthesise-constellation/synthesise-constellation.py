@@ -12,12 +12,15 @@ import math
 import golly as g
 
 g.setrule("B3/S23")
+MAXPERIOD = 60
 
 # Files with glider collisions data. This file contains the 2G collisions
 compFiles = ["3Gcols.sjk", "4Gcols.sjk"]
 
 def main():
     apgcode = canonise()
+    if not apgcode:
+        g.warn('Failed to detect periodic behavious after {} generations.'.format(MAXPERIOD))
     
     compFormat = re.compile('^([a-z0-9_]*)>([ 0-9\/-]+)>{}$'.format(apgcode))
     cols = []
@@ -36,15 +39,14 @@ def main():
                         g.warn('Non-empty starting target in glider collision - Not implemented')
                         continue
                     cols.append(mg)
+    
     if cols:
-        # g.note(str(cols[:20]))
         cols = [reconstruct(col[1]) for col in cols]
-        # g.note(str(cols[:20]))
         Ncols = len(cols)
         g.new("solutions")
         g.show("{} collisions found".format(Ncols))
         g.setname(apgcode)
-        if Ncols < 25:
+        if Ncols <= 20:
             N = 5
         else:
             N = math.ceil(math.sqrt(Ncols)) + 1
@@ -53,7 +55,7 @@ def main():
             g.putcells(col, int((i % N) * offset), int((i // N) * offset))
         g.fit()
     else:
-        g.note("No glider collisions found for that constellation. Better luck next time")
+        g.note("No glider collisions found for constellation {}. Better luck next time".format(apgcode))
 
 twoGcols = """
 >9 -1//7 -1/>xp2_7
@@ -129,28 +131,24 @@ def bijoscar(maxsteps):
     inithash = g.hash(initrect)
     
     for i in xrange(maxsteps):
-    
         g.run(1)
-        
         if (int(g.getpop()) == initpop): 
-        
             prect = g.getrect()
             phash = g.hash(prect)
-            
             if (phash == inithash):
-            
                 period = i + 1
-                
                 if (prect == initrect):
                     return period
                 else:
-                    return -period 
+                    return -period
+    
     return -1
 
-
 def canonise():
-    
-    p = bijoscar(6)
+    p = bijoscar(MAXPERIOD)
+    if p == -1:
+        # In rules with photons the pattern may be periodic, but not in CGoL
+        return ""
     
     representation = "#"
     for i in range(abs(p)):
@@ -166,19 +164,17 @@ def canonise():
         g.run(1)
     
     if (p<0):
-        prefix = "q"+str(abs(p))
+        prefix = "xq" + str(abs(p))
     elif (p==1):
-        prefix = "s"+str(g.getpop())
+        prefix = "xs" + str(g.getpop())
     else:
-        prefix = "p"+str(p)
+        prefix = "xp" + str(p)
     
-    return "x"+prefix+"_"+representation
+    return prefix + "_" + representation
 
 # A subroutine used by canonise:
 def canonise_orientation(length, breadth, ox, oy, a, b, c, d):
-    
     representation = ""
-    
     chars = "0123456789abcdefghijklmnopqrstuvwxyz"
     
     for v in xrange(int((breadth-1)/5)+1):
@@ -206,12 +202,12 @@ def canonise_orientation(length, breadth, ox, oy, a, b, c, d):
                         representation += chars[zeroes - 4]
                 zeroes = 0     
                 representation += chars[baudot]
+    
     return representation
 
 # Compares strings first by length, then by lexicographical ordering.
 # A hash character is worse than anything else.
 def compare_representations(a, b):
-    
     if (a == "#"):
         return b
     elif (b == "#"):
