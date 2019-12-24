@@ -168,6 +168,7 @@ def canonise():
 def canonise_orientation(length, breadth, ox, oy, a, b, c, d):
     representation = ""
     chars = "0123456789abcdefghijklmnopqrstuvwxyz"
+    runzeroes = len(chars) + 3
     
     for v in xrange(int((breadth-1)/5)+1):
         zeroes = 0
@@ -190,6 +191,9 @@ def canonise_orientation(length, breadth, ox, oy, a, b, c, d):
                     elif (zeroes == 3):
                         representation += "x"
                     else:
+                        while(zeroes > runzeroes):
+                            representation += "yz"
+                            zeroes -= runzeroes
                         representation += "y"
                         representation += chars[zeroes - 4]
                 zeroes = 0     
